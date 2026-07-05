@@ -131,3 +131,22 @@ void ovDrawString(u32 addr, u32 stride, u32 format, u32 scrnWidth, int posR, int
     posC += 8;
   }
 }
+
+void ovDrawStringMulticolor(u32 addr, u32 stride, u32 format, u32 scrnWidth, int posR, int posC, u32 *color_buf, u8 *buf)
+{
+  while (*buf)
+  {
+    if ((posR + 8 > 240) || (posC + 8 > scrnWidth))
+    {
+      return;
+    }
+    u32 color = *color_buf;
+    u32 red = (color >> 16) & 0xff;
+    u32 green = (color >> 8) & 0xff;
+    u32 blue = color & 0xff;
+    ovDrawChar(addr, stride, format, *buf, posR, posC, red, green, blue);
+    buf++;
+    color_buf++;
+    posC += 8;
+  }
+}

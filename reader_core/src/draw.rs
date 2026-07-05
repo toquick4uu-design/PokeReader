@@ -5,6 +5,7 @@ use crate::pnp;
 use crate::{GIT_HASH, VERSION};
 use pkm_rs::{Nature, Pkx, Shiny};
 
+pub const BLACK: u32 = 0x000000;
 pub const WHITE: u32 = 0xffffff;
 pub const GREEN: u32 = 0x00cc00;
 pub const RED: u32 = 0xff0000;

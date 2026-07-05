@@ -9,6 +9,8 @@ use crate::{
 };
 
 pub use crate::draw::{PkxType, draw_header, draw_pkx};
+use crate::draw::{GREEN, MUTED_CYAN, RED};
+use crate::utils::number_input::{MaxDigits, NumberInput};
 
 pub fn draw_tinymt(reader: &Gen6Reader, rng: &Gen6Rng) {
     let tinymt = rng.tinymt();
@@ -27,20 +29,49 @@ pub fn draw_tinymt(reader: &Gen6Reader, rng: &Gen6Rng) {
     pnp::println!("[1]{:08X} [0]{:08X}", tinymt_state[1], tinymt_state[0]);
 }
 
-pub fn draw_mt(rng: &Gen6Rng) {
+pub fn draw_mt(rng: &Gen6Rng, mt_target: &Option<u32>) {
     let mt = rng.mt();
     pnp::println!("Init seed: {:08X}", mt.init_seed());
     pnp::println!("Curr state: {:08X}", mt.current_state());
     pnp::println!("MT Advances: {}", mt.advances());
+    if let Some(mt_target) = mt_target {
+        pnp::println!("MT Target: {}", mt_target);
+        
+    }
 }
 
-pub fn draw_rng(reader: &Gen6Reader, rng: &Gen6Rng) {
-    draw_mt(rng);
+pub fn draw_rng(reader: &Gen6Reader, rng: &Gen6Rng, mt_target: &Option<u32>) {
+    draw_mt(rng, mt_target);
     pnp::println!("");
     draw_tinymt(reader, rng);
     pnp::println!("");
     pnp::println!("Save var: {:08X}", reader.seed_save_variable());
     pnp::println!("TSV: {}, TRV: {:X}", reader.tsv(), reader.trv());
+}
+
+pub fn draw_auto_advance<T: MaxDigits>(current_advance: u32, current_target: &Option<u32>, target_selector: &NumberInput<T>)
+where [(); T::DIGITS]: {
+    pnp::println!("Start to confirm");
+    pnp::println!("Select to exit");
+    pnp::println!("MT Advance: {}", current_advance);
+    pnp::print!("Target: ");
+    if let Some(current_target) = current_target{
+        let color = if *current_target > current_advance {
+            GREEN
+        } else if *current_target < current_advance {
+            RED
+        } else {
+            MUTED_CYAN
+        };
+        pnp::println!(color = color, "{}", current_target);
+        if *current_target <= current_advance {
+            pnp::println!("Press start to resume !");
+        }
+    } else {
+        pnp::println!(color = RED, "N/A");
+    }
+    pnp::println!();
+    target_selector.draw();
 }
 
 pub fn draw_daycare(daycare: &Daycare) {
@@ -63,11 +94,11 @@ pub fn draw_radar(reader: &Gen6Reader, rng: &Gen6Rng) {
     draw_tinymt(reader, rng);
 }
 
-pub fn draw_dex_nav(reader: &Gen6Reader, rng: &Gen6Rng) {
+pub fn draw_dex_nav(reader: &Gen6Reader, rng: &Gen6Rng, mt_target: &Option<u32>) {
     let step = reader.dex_nav_step();
     let chain = reader.dex_nav_chain();
 
-    draw_mt(rng);
+    draw_mt(rng, mt_target);
     pnp::println!("");
     draw_tinymt(reader, rng);
     pnp::println!("");
@@ -75,12 +106,12 @@ pub fn draw_dex_nav(reader: &Gen6Reader, rng: &Gen6Rng) {
     pnp::println!("Chain {}", chain);
 }
 
-pub fn draw_seed_rng(reader: &Gen6Reader, rng: &Gen6Rng) {
+pub fn draw_seed_rng(reader: &Gen6Reader, rng: &Gen6Rng, mt_target: &Option<u32>) {
     let datetime = pnp::os_time();
     let hash = get_seed_hash();
     let seed_hash = (hash as u32) ^ (hash >> 32) as u32;
 
-    draw_mt(rng);
+    draw_mt(rng, mt_target);
     pnp::println!("");
     pnp::println!("");
     pnp::println!("Save var: {:08X}", reader.seed_save_variable());

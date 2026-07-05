@@ -73,4 +73,12 @@ impl<Value: Copy> Menu<Value> {
         }
         self.is_locked
     }
+
+    pub fn lock(&mut self) {
+        self.is_locked = true;
+    }
+
+    pub fn unlock(&mut self) {
+        self.is_locked = false;
+    }
 }

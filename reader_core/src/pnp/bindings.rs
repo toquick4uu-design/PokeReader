@@ -1,5 +1,5 @@
 extern "C" {
-    pub fn host_print(ptr: u32, size: u32, color: u32);
+    pub fn host_print(ptr: u32, size: u32, color: u32, newline: bool);
     pub fn host_read_mem(game_addr: u32, size: u32, out_ptr: u32);
     pub fn host_write_mem(game_addr: u32, size: u32, in_ptr: u32);
     pub fn host_is_just_pressed(io_bits: u32) -> u32;

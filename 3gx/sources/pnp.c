@@ -24,8 +24,9 @@ u64 game_start_ms = 0;
 #define MAX_LINE_LENGTH 46
 
 char print_buffer[MAX_LINES][MAX_LINE_LENGTH];
-u32 print_buffer_color[MAX_LINES];
+u32 print_buffer_color[MAX_LINES][MAX_LINE_LENGTH];
 u32 buffer_index = 0;
+u32 line_index = 0;
 
 void reset_print()
 {
@@ -33,8 +34,9 @@ void reset_print()
   print_y = default_print_y;
   print_max_len = default_print_max_len;
   memset(print_buffer, 0x00, MAX_LINES * MAX_LINE_LENGTH);
-  memset(print_buffer_color, 0x00, MAX_LINES);
+  memset(print_buffer_color, 0x00, MAX_LINES * MAX_LINE_LENGTH * sizeof(u32));
   buffer_index = 0;
+  line_index = 0;
 }
 
 void draw_to_screen(u32 screenId, u8 *framebuffer, u32 stride, u32 format)
@@ -51,26 +53,34 @@ void draw_to_screen(u32 screenId, u8 *framebuffer, u32 stride, u32 format)
 
   for (u32 i = 0; i < buffer_index; i++)
   {
-    u32 color = print_buffer_color[i];
-    u32 red = (color >> 16) & 0xff;
-    u32 green = (color >> 8) & 0xff;
-    u32 blue = color & 0xff;
-    ovDrawString((u32)framebuffer, stride, format, SCREEN_WIDTH, print_y, print_x, red, green, blue, print_buffer[i]);
+    ovDrawStringMulticolor((u32)framebuffer, stride, format, SCREEN_WIDTH, print_y, print_x, print_buffer_color[i], print_buffer[i]);
     print_y += 12;
   }
 
   reset_print();
 }
 
-void host_print(u32 ptr, u32 size, u32 color)
+void host_print(u32 ptr, u32 size, u32 color, bool newline)
 {
   if (buffer_index < MAX_LINES)
   {
-    u32 copy_size = (size < print_max_len - 1) ? size : print_max_len - 1;
-    memcpy(print_buffer[buffer_index], (char *)ptr, copy_size);
-    print_buffer[buffer_index][copy_size] = '\0'; // Null-terminate the string
-    print_buffer_color[buffer_index] = color;
-    buffer_index++;
+    u32 copy_size = (size < print_max_len - line_index - 1) ? size : print_max_len - line_index - 1;
+    memcpy(print_buffer[buffer_index] + line_index, (char *)ptr, copy_size);
+
+    for (u32 i = 0; i < copy_size; i++)
+    {
+      print_buffer_color[buffer_index][line_index + i] = color;
+    }
+
+    line_index += copy_size;
+
+    if (newline)
+    {
+      print_buffer[buffer_index][line_index] = '\0'; // Null-terminate the string
+      print_buffer_color[buffer_index][line_index] = 0xffffff; // Force the null terminator color white
+      buffer_index++;
+      line_index = 0;
+    }
   }
 }
 

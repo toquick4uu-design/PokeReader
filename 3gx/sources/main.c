@@ -25,6 +25,11 @@ void handle_freeze(bool isTopScreen)
         is_paused = true;
     }
 
+    if (PAUSE_REQUESTED)
+    {
+        is_paused = true;
+    }
+
     while (is_paused && !isTopScreen)
     {
         scan_input();
@@ -33,11 +38,21 @@ void handle_freeze(bool isTopScreen)
 
         if (just_pressed & (KEY_SELECT | KEY_L))
         {
+            if (PAUSE_REQUESTED)
+            {
+                PAUSE_REQUESTED = false;
+                clear_requested_pause();
+            }
             break;
         }
 
         if (just_pressed & (KEY_A | KEY_START | KEY_R))
         {
+            if (PAUSE_REQUESTED)
+            {
+                PAUSE_REQUESTED = false;
+                clear_requested_pause();
+            }
             is_paused = false;
             break;
         }

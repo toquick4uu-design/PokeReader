@@ -12,8 +12,11 @@ use crate::{
         sub_menu_capture::SubMenuCapture,
         ShowView,
     },
+    request_pause
 };
 use once_cell::unsync::Lazy;
+use crate::gen7::draw::draw_auto_advance;
+use crate::utils::number_input::NumberInput;
 
 fn gen7_specific_help() {
     pnp::println!("SOS Controls:");
@@ -34,6 +37,7 @@ fn gen7_specific_help() {
 enum Gen7View {
     MainMenu,
     Rng,
+    AutoAdvance,
     Daycare,
     WildPokemon,
     Sos,
@@ -55,10 +59,13 @@ struct PersistedState {
     party_menu: SubMenu,
     sos_menu: SubMenuCapture,
     pelago_menu: SubMenu,
+    target_advance_selector: NumberInput<'static, u32>,
+    target_advance: Option<u32>
 }
 
 const MENU: &[MenuOption<Gen7View>] = &[
     MenuOption::new(Gen7View::Rng, "RNG"),
+    MenuOption::new(Gen7View::AutoAdvance, "Auto Advance"),
     MenuOption::new(Gen7View::Daycare, "Daycare"),
     MenuOption::new(Gen7View::WildPokemon, "Wild"),
     MenuOption::new(Gen7View::Sos, "SOS"),
@@ -81,8 +88,17 @@ unsafe fn get_state() -> &'static mut PersistedState {
         sos_menu: SubMenuCapture::new(1, 4),
         help_menu: HelpMenu::new(gen7_specific_help),
         main_menu: Menu::new(MENU),
+        target_advance_selector: NumberInput::new("Target"),
+        target_advance: None,
     });
     Lazy::force_mut(&mut STATE)
+}
+
+pub fn gen7_clear_pause_update_state() {
+    // This is safe as long as this is guaranteed to run single threaded.
+    // A lock hinders performance too much on a 3ds.
+    let state = unsafe { get_state() };
+    state.target_advance = None;
 }
 
 fn run_frame(reader: Gen7Reader) {
@@ -95,16 +111,61 @@ fn run_frame(reader: Gen7Reader) {
     state.sfmt.reinit_if_needed(reader.init_seed());
     state.sfmt.update_advances(reader.sfmt_state());
 
+    // If there is an advance target, which is equal or larger than the current advance, trigger a pause
+    if let Some(target_advance) = state.target_advance {
+        if target_advance <= state.sfmt.advances() {
+            request_pause();
+        }
+    }
+
     if !state.show_view.check() {
         return;
     }
 
     let is_locked = state.main_menu.update_lock();
     state.view = state.main_menu.next_view(Gen7View::MainMenu, state.view);
-    draw_header(Gen7View::MainMenu, state.view, is_locked);
+
+    // Don't display header for the AutoAdvance menu (as the controls are different)
+    if !matches!(state.view, Gen7View::AutoAdvance) {
+        draw_header(Gen7View::MainMenu, state.view, is_locked);
+    }
 
     match state.view {
-        Gen7View::Rng => draw_rng(&reader, &state.sfmt),
+        Gen7View::Rng => draw_rng(&reader, &state.sfmt, &state.target_advance),
+        Gen7View::AutoAdvance => {
+            let current_advance =  state.sfmt.advances();
+            // If we just entered the auto advance page (we know it is the case because main view is not locked yet)
+            // Set the value on the selector to either the existing target for edition, or the current advance value if no target is set
+            if !is_locked{
+                state.target_advance_selector.set_value(state.target_advance.unwrap_or(state.sfmt.advances()) as usize);
+            }
+
+            if pnp::is_just_pressed(pnp::Button::Start) {
+                // Expensive-ish operation, only do it when requested
+                let selected = state.target_advance_selector.value();
+                if selected >= current_advance{
+                    state.target_advance = Some(state.target_advance_selector.value());
+                } else {
+                    state.target_advance_selector.set_value(selected as usize);
+                }
+            }
+
+            if pnp::is_just_pressed(pnp::Button::Select)  {
+                state.main_menu.unlock();
+                state.view = Gen7View::MainMenu;
+
+                state.main_menu.update_view();
+                state.main_menu.draw();
+                return;
+            }
+
+            // Lock main menu to allow for view controls to not exit the submenu
+            state.main_menu.lock();
+
+            state.target_advance_selector.update();
+
+            draw_auto_advance(state.sfmt.advances(), &state.target_advance, &state.target_advance_selector)
+        },
         Gen7View::Daycare => draw_daycare(&reader),
         Gen7View::WildPokemon => {
             let slot = state.wild_menu.update_and_draw(is_locked);

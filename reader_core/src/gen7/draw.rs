@@ -5,20 +5,48 @@ use crate::{
     utils::{format_egg_parent, is_daycare_masuda_method},
 };
 
-pub use crate::draw::{draw_header, draw_pkx, draw_pkx_brief, get_pp, print_pp, PkxType, GREEN, RED, WHITE};
+pub use crate::draw::{draw_header, draw_pkx, draw_pkx_brief, get_pp, print_pp, PkxType, GREEN, RED, WHITE, MUTED_CYAN};
+use crate::utils::number_input::{MaxDigits, NumberInput};
 
-pub fn draw_rng(reader: &Gen7Reader, rng: &RngWrapper<Sfmt64>) {
+pub fn draw_rng(reader: &Gen7Reader, rng: &RngWrapper<Sfmt64>, target_advances: &Option<u32>) {
     let sfmt_state = rng.current_state();
 
     pnp::println!("Seed:     {:08X}", rng.init_seed());
     pnp::println!("State[1]: {:08X}", (sfmt_state & 0xffffffff) as u32);
     pnp::println!("State[0]: {:08X}", (sfmt_state >> 32) as u32);
     pnp::println!("Advances: {}", rng.advances());
+    if let Some(target_advances) = target_advances {
+        pnp::println!("Target Auto: {}", target_advances);
+    }
     pnp::println!("");
     pnp::println!("Gen7TID: {}", reader.g7tid());
     pnp::println!("TSV: {}, TRV: {:X}", reader.tsv(), reader.trv());
     pnp::println!("");
     pnp::println!("NPC count: {}", reader.npc_count());
+}
+pub fn draw_auto_advance<T: MaxDigits>(current_advance: u32, current_target: &Option<u32>, target_selector: &NumberInput<T>)
+where [(); T::DIGITS]: {
+    pnp::println!("Start to confirm");
+    pnp::println!("Select to exit");
+    pnp::println!("Advance: {}", current_advance);
+    pnp::print!("Target: ");
+    if let Some(current_target) = current_target{
+        let color = if *current_target > current_advance {
+            GREEN
+        } else if *current_target < current_advance {
+            RED
+        } else {
+            MUTED_CYAN
+        };
+        pnp::println!(color = color, "{}", current_target);
+        if *current_target <= current_advance {
+            pnp::println!("Press start to resume !");
+        }
+    } else {
+        pnp::println!(color = RED, "N/A");
+    }
+    pnp::println!();
+    target_selector.draw();
 }
 
 pub fn draw_citra_info(reader: &Gen7Reader) {

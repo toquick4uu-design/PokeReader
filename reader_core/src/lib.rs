@@ -1,6 +1,8 @@
 #![no_std]
 #![allow(static_mut_refs)]
 #![feature(naked_functions)]
+#![allow(incomplete_features)]
+#![feature(generic_const_exprs)]
 
 extern crate alloc;
 
@@ -115,4 +117,30 @@ pub extern "C" fn run_frame() {
         }
         Err(TitleError::InvalidTitle) => {}
     }
+}
+
+#[no_mangle]
+pub static mut PAUSE_REQUESTED: bool = false;
+
+pub fn request_pause(){
+    unsafe {
+        PAUSE_REQUESTED = true;
+    }
+}
+
+pub fn unrequest_pause(){
+    unsafe {
+        PAUSE_REQUESTED = false;
+    }
+}
+
+#[no_mangle]
+pub extern "C" fn clear_requested_pause() {
+    match loaded_title() {
+        Ok(LoadedTitle::S | LoadedTitle::M | LoadedTitle::Us | LoadedTitle::Um) => gen7::gen7_clear_pause_update_state(),
+        Ok(LoadedTitle::Or | LoadedTitle::As) => gen6::oras_clear_pause_update_state(),
+        Ok(LoadedTitle::X | LoadedTitle::Y) => gen6::xy_clear_pause_update_state(),
+        _ => panic!("Unsupported game for auto pause yet"),
+    }
+
 }
