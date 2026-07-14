@@ -15,7 +15,6 @@ out/default.3gx: $(LIBPOKEREADER) $(C_SRCS) $(H_SRCS)
 	make -C 3gx
 	mkdir -p out
 	cp 3gx/build/3gx.3gx out/default.3gx
-	cp out/default.3gx /mnt/c/Users/filip/AppData/Roaming/Azahar/sdmc/luma/plugins
 
 clean:
 	cargo clean --manifest-path reader_core/Cargo.toml
