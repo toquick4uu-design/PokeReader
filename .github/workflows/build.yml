@@ -16,18 +16,20 @@ jobs:
     - name: Checkout code
       uses: actions/checkout@v4
 
-    - name: Install Rust
+    - name: Install Rust (nightly)
       run: |
-        curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh -s -- -y
+        curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh -s -- -y --default-toolchain nightly
         echo "$HOME/.cargo/bin" >> $GITHUB_PATH
 
-    - name: Add 3DS Rust target
-      run: rustup target add armv6k-nintendo-3ds
+    - name: Add 3DS Rust target (with std built from source)
+      run: |
+        rustup default nightly
+        rustup target add armv6k-nintendo-3ds
 
     - name: Install 3gxtool
       run: |
         apt-get update
-        apt-get install -y wget
+        apt-get install -y wget unzip
         wget https://github.com/Nanquitas/3gxtool/releases/latest/download/3gxtool-linux-x86_64.zip
         unzip 3gxtool-linux-x86_64.zip
         chmod +x 3gxtool
