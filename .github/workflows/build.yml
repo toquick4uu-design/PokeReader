@@ -6,8 +6,16 @@ jobs:
     container: devkitpro/devkitarm:latest
     steps:
       - uses: actions/checkout@v4
-      - run: curl -sSf https://sh.rustup.rs | sh -s -- -y
-      - run: export PATH="$HOME/.cargo/bin:$PATH" && make
+      - name: Install Rust + rust-src
+        run: |
+          curl -sSf https://sh.rustup.rs | sh -s -- -y
+          export PATH="$HOME/.cargo/bin:$PATH"
+          rustup toolchain install nightly-2024-03-21
+          rustup component add rust-src --toolchain nightly-2024-03-21
+      - name: Build
+        run: |
+          export PATH="$HOME/.cargo/bin:$PATH"
+          make
       - uses: actions/upload-artifact@v4
         with:
           name: default.3gx
