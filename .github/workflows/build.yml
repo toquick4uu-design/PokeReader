@@ -24,21 +24,13 @@ jobs:
     - name: Configure cargo for 3DS
       run: |
         rustup default nightly
-        # Override CARGO to always pass -Z build-std
         echo "CARGO=cargo -Z build-std" >> $GITHUB_ENV
-        # Tell cargo which linker to use (provided by devkitARM)
         echo "CARGO_TARGET_ARM6K_NINTENDO_3DS_LINKER=arm-none-eabi-gcc" >> $GITHUB_ENV
-        # Optional but often needed for 3DS
         echo "RUSTFLAGS=-C target-feature=+crt-static" >> $GITHUB_ENV
 
-    - name: Install 3gxtool
+    - name: Install 3gxtool (via dkp-pacman)
       run: |
-        apt-get update
-        apt-get install -y wget unzip
-        wget https://github.com/Nanquitas/3gxtool/releases/latest/download/3gxtool-linux-x86_64.zip
-        unzip 3gxtool-linux-x86_64.zip
-        chmod +x 3gxtool
-        mv 3gxtool /usr/local/bin/
+        dkp-pacman -S 3gxtool --noconfirm
 
     - name: Build with Make
       run: make
