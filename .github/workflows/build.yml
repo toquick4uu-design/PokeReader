@@ -29,13 +29,13 @@ jobs:
         echo "RUSTFLAGS=-C target-feature=+crt-static" >> $GITHUB_ENV
 
     - name: Build 3gxtool from source
-      run: |
-        apt-get update
-        apt-get install -y git
-        git clone https://github.com/Nanquitas/3gxtool.git
-        cd 3gxtool
-        make
-        cp 3gxtool /usr/local/bin/
+  run: |
+    apt-get update
+    apt-get install -y git
+    git clone https://github.com/Nanquitas/3gxtool.git
+    cd 3gxtool
+    make CXXFLAGS="-fno-exceptions" LDFLAGS="-fno-exceptions"
+    cp 3gxtool /usr/local/bin/
 
     - name: Build PokeReader
       run: make
